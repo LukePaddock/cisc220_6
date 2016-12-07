@@ -21,9 +21,9 @@ int main(int argc, char *argv[]) {
 	pthread_t graphics;
 
 	gameon = malloc(sizeof(int));
-	*gameon = 1;
+	*gameon = 1; /* the games afoot */
 	
-	srand(time(NULL));
+	srand(time(NULL)); /* change rand number seed */
 
 	racer_one = malloc(sizeof(int));
 	racer_two = malloc(sizeof(int));
@@ -37,32 +37,38 @@ int main(int argc, char *argv[]) {
 	*racer_four = 0;
 	*racer_five = 0;
 	
+	/* start graphics thread */
 	pthread_create(&graphics, NULL, redraw, (void *) NULL);
 
-	getchar();
+	getchar(); /* wait for user to press enter */
 
+	/* start bot threads */
 	pthread_create(&five, NULL, compt_racer, (void *) racer_five);
 	pthread_create(&two, NULL, compt_racer, (void *) racer_two);
 	pthread_create(&three, NULL, compt_racer, (void *) racer_three);
 	pthread_create(&four, NULL, compt_racer, (void *) racer_four);
 	
-
+	/* Keyboard racer control */
 	while (*gameon) {
 		char c = getchar();
 		if ( c == '\n' && *racer_one < 40) { (*racer_one)++; }
 	}
+
+	/* wait for all the threads to terminate */
 	pthread_join(five, NULL);
 	pthread_join(two, NULL);
 	pthread_join(three, NULL);
 	pthread_join(four, NULL);
 	pthread_join(graphics, NULL);
 
+	/* free malloc'd variables */
 	free(racer_one);
 	free(racer_two);
 	free(racer_three);
 	free(racer_four);
 	free(racer_five);
 	free(gameon);
+	return 0; /* program finished! */
 }
 
 
