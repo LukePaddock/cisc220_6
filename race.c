@@ -12,18 +12,18 @@ void *compt_racer(void *pos);
 void *redraw(void *args);
 void drawlane(int racer_pos);
 
-/* racers 1-4 are 'ai' racers, racer 5 is the keyboard racer */
+/* Racer_One is human, the rest are bots */
 int *racer_one, *racer_two, *racer_three, *racer_four, *racer_five;
-int *gameon;
+int *gameon; /* used as boolean, =1 when game is running, 0 when finished */
 
 int main(int argc, char *argv[]) {
-	int x;
-
-	pthread_t one, two, three, four;
+	pthread_t two, three, four, five;
 	pthread_t graphics;
 
 	gameon = malloc(sizeof(int));
 	*gameon = 1;
+	
+	srand(time(NULL));
 
 	racer_one = malloc(sizeof(int));
 	racer_two = malloc(sizeof(int));
@@ -37,37 +37,53 @@ int main(int argc, char *argv[]) {
 	*racer_four = 0;
 	*racer_five = 0;
 	
-	int *racer_array[5] = { racer_one, racer_two, racer_three, racer_four, racer_five };
+	pthread_create(&graphics, NULL, redraw, (void *) NULL);
+
+	getchar();
+
+	pthread_create(&five, NULL, compt_racer, (void *) racer_five);
+	pthread_create(&two, NULL, compt_racer, (void *) racer_two);
+	pthread_create(&three, NULL, compt_racer, (void *) racer_three);
+	pthread_create(&four, NULL, compt_racer, (void *) racer_four);
 	
-	x = pthread_create(&one, NULL, compt_racer, (void *) racer_one);
-	x = pthread_create(&two, NULL, compt_racer, (void *) racer_two);
-	x = pthread_create(&three, NULL, compt_racer, (void *) racer_three);
-	x = pthread_create(&four, NULL, compt_racer, (void *) racer_four);
 
-	x = pthread_create(&graphics, NULL, redraw, (void *) racer_array);
-
-	/* Keyboard Racer goes here! */
-
-	pthread_join(one, NULL);
+	while (*gameon) {
+		char c = getchar();
+		if ( c == '\n' && *racer_one < 40) { (*racer_one)++; }
+	}
+	pthread_join(five, NULL);
 	pthread_join(two, NULL);
 	pthread_join(three, NULL);
 	pthread_join(four, NULL);
 	pthread_join(graphics, NULL);
+
+	free(racer_one);
+	free(racer_two);
+	free(racer_three);
+	free(racer_four);
+	free(racer_five);
+	free(gameon);
 }
 
 
 /* Thread for computer racer (using rand numbers and stuff) */
 void *compt_racer(void *pos) {
 	int *x = (int*) pos;
-	while ((*x) < 10) {
-		usleep(1000000);
+	/* while everyone is below a winning score */
+	while (*racer_one < 40 && *racer_two < 40 && *racer_three < 40 && *racer_four < 40 && *racer_five < 40) {
+		int sleeptime = rand() % 100 + 1;
+		usleep(sleeptime*1000);
 		(*x)++;
 	}
+	*gameon = 0; /* the game is over set to 0 (false) */
+	return 0;
 }
 
-/* Clear then draw the board */
+/* thread that clears then draws the board */
 void *redraw(void *args) {
-	while(1) {
+	int lastdraw = 1; /* this variable is used to ensure that when the game is finished
+			     the loop draws the screen one last time to show the last positions */
+	while(lastdraw) {
 		system("clear");
 		printf("Welcome to CISC220 Racing Arena\nHit Enter to move forward\n");
 		drawlane(*racer_one);
@@ -80,11 +96,22 @@ void *redraw(void *args) {
 		printf("# Lane 4 \n");
 		drawlane(*racer_five);
 		printf("# Lane 5 \n");
-		usleep(900000);
+		if (*gameon == 0) { lastdraw--; }
+		usleep(1000000/5);
 	}
-	
+
+	/* print the 'winner' banner */
+	printf("\n\tThe Winner Is: "); /* multiple winners possible (tie) */
+	if (*racer_one >= 40) { printf(" Racer One!"); }
+	if (*racer_two >= 40) { printf(" Racer Two!"); }
+	if (*racer_three >= 40) { printf(" Racer Three!"); }
+	if (*racer_four >= 40) { printf(" Racer Four!"); }
+	if (*racer_five >= 40) { printf(" Racer Five!"); }
+	printf("\n");
+	return 0;
 }
 
+/* draws racer, ~'s and spaces for one lane */
 void drawlane(int race_pos) {
 	for (int x = 0; x < race_pos; x++) {
 		printf("~");
